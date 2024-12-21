@@ -32,7 +32,7 @@
  * @author bekkibau <https://www.github.com/bekkibau>
  * @see https://github.com/bekkibau/deletecord
  */
-async function deleteMessages(authToken, authorId, guildId, channelId, minId, maxId, content, hasLink, hasFile, includeNsfw, includePinned, searchDelay, deleteDelay, extLogger, stopHndl, onProgress) {
+async function deleteMessages(authToken, authorId, guildId, channelId, minId, maxId, content, hasLink, hasFile, includeNsfw, includePinned, searchDelay, deleteDelay, delayIncrement, delayDecrement, delayDecrementPerMsgs, retryAfterMultiplier, extLogger, stopHndl, onProgress) {
     const start = new Date();
     let delCount = 0;
     let failCount = 0;
@@ -83,10 +83,10 @@ async function deleteMessages(authToken, authorId, guildId, channelId, minId, ma
     // Ensure logArea is correctly referenced
     const logArea = document.querySelector('#deletecord .logarea');
 
-    const adjustDelay = (retryAfter) => {
-        const newDelay = retryAfter * 2; // Adjust delay to twice the retry_after value
-        searchDelay = Math.max(searchDelay, newDelay);
-        deleteDelay = Math.max(deleteDelay, newDelay);
+    const adjustDelay = (delta) => {
+      //searchDelay += delta; //In reality, the search happens rarely, so the search delay should default to a high value to avoid needing to change it
+      deleteDelay += delta;
+      //log.verb(`Adjusting delay, by ${delta} ms to ${deleteDelay} ms...`);
     };
 
     async function recurse() {
@@ -140,12 +140,12 @@ async function deleteMessages(authToken, authorId, guildId, channelId, minId, ma
                 const w = (await resp.json()).retry_after;
                 throttledCount++;
                 throttledTotalTime += w;
-                adjustDelay(w); // Adjust delay based on retry_after value
-                log.warn(`Being rate limited by the API for ${w}ms! Increasing search and delete delay...`);
+                //adjustDelay(w); // Adjust delay based on retry_after value
+                log.warn(`Being rate limited by the API for ${w*1000}ms! Consider increasing search delay...`);
                 printDelayStats();
-                log.verb(`Cooling down for ${w * 2}ms before retrying...`);
+                log.verb(`Cooling down for ${w * retryAfterMultiplier}ms before retrying...`);
 
-                await wait(w * 2);
+                await wait(w * retryAfterMultiplier);
                 return await recurse();
             } else {
                 return log.error(`Error searching messages, API responded with status ${resp.status}!\n`, await resp.json());
@@ -194,6 +194,10 @@ async function deleteMessages(authToken, authorId, guildId, channelId, minId, ma
                         `Deleting ID:${redact(message.id)} <b>${redact(message.author.username + '#' + message.author.discriminator)} <small>(${redact(new Date(message.timestamp).toLocaleString())})</small>:</b> <i>${redact(message.content).replace(/\n/g, '↵')}</i>`,
                         message.attachments.length ? redact(JSON.stringify(message.attachments)) : '');
                     if (onProgress) onProgress(delCount + 1, grandTotal);
+                    if (delCount % delayDecrementPerMsgs === 0) { //decrement delay every N processed messages
+                      log.verb(`Reducing delete delay automatically by ${delayDecrement}ms...`);
+                      adjustDelay(delayDecrement)
+                    }
 
                     let resp;
                     try {
@@ -219,11 +223,12 @@ async function deleteMessages(authToken, authorId, guildId, channelId, minId, ma
                             const w = (await resp.json()).retry_after;
                             throttledCount++;
                             throttledTotalTime += w;
-                            adjustDelay(w); // Adjust delay based on retry_after value
-                            log.warn(`Being rate limited by the API for ${w}ms! Adjusted delete delay to ${deleteDelay}ms.`);
+                            adjustDelay(delayIncrement); // Adjust delay based on retry_after value
+                            console.log(delayIncrement);
+                            log.warn(`Being rate limited by the API for ${w * 1000}ms! Adjusted delete delay to ${deleteDelay}ms.`);
                             printDelayStats();
-                            log.verb(`Cooling down for ${w * 2}ms before retrying...`);
-                            await wait(w * 2);
+                            log.verb(`Cooling down for ${w * retryAfterMultiplier}ms before retrying...`);
+                            await wait(w * retryAfterMultiplier);
                             j--; // retry
                         } else if (resp.status === 403 || resp.status === 400) {
                             log.warn('Insufficient permissions to delete message. Skipping this message.');
@@ -235,6 +240,9 @@ async function deleteMessages(authToken, authorId, guildId, channelId, minId, ma
                             failCount++;
                         }
                     }
+
+
+
 
                     await wait(deleteDelay);
                 }
@@ -364,12 +372,12 @@ function initUI() {
                 <span>Search Delay <a
                 href="https://github.com/bekkibau/deletecord/wiki/delay" title="Help"
                 target="_blank">?</a><br>
-                    <input id="searchDelay" type="number" value="100" step="100"><br>
+                    <input id="searchDelay" type="number" value="1500" step="100"><br>
                 </span>
                 <span>Delete Delay <a
                 href="https://github.com/bekkibau/deletecord/wiki/delay" title="Help"
                 target="_blank">?</a><br>
-                    <input id="deleteDelay" type="number" value="1000" step="100">
+                    <input id="deleteDelay" type="number" value="1400" step="100">
                 </span>
             </div>
             <hr>
@@ -444,6 +452,10 @@ function initUI() {
         const includePinned = $('input#includePinned').checked;
         const searchDelay = parseInt($('input#searchDelay').value.trim());
         const deleteDelay = parseInt($('input#deleteDelay').value.trim());
+        const delayIncrement = 150; //ms
+        const delayDecrement = -50; //ms
+        const delayDecrementPerMsgs = parseInt("1000") //msgs; 1000 messages at ~1300ms delay is about half an hour.
+        const retryAfterMultiplier = 3000; //1000 to convert to seconds, 3x for extra delay
         const progress = $('#progress');
         const progress2 = btn.querySelector('progress');
         const percent = $('.percent');
@@ -478,7 +490,7 @@ function initUI() {
 
         stop = stopBtn.disabled = !(startBtn.disabled = true);
         for (let i = 0; i < channelIds.length; i++) {
-            await deleteMessages(authToken, authorId, guildId, channelIds[i], minId || minDate, maxId || maxDate, content, hasLink, hasFile, includeNsfw, includePinned, searchDelay, deleteDelay, logger, stopHndl, onProg);
+            await deleteMessages(authToken, authorId, guildId, channelIds[i], minId || minDate, maxId || maxDate, content, hasLink, hasFile, includeNsfw, includePinned, searchDelay, deleteDelay, delayIncrement, delayDecrement, delayDecrementPerMsgs,retryAfterMultiplier, logger, stopHndl, onProg);
             stop = stopBtn.disabled = !(startBtn.disabled = false);
         }
     };
