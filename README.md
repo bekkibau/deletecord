@@ -2,7 +2,7 @@
 
 [website](https://bekkibau.github.io/deletecord) / [greasyfork](https://greasyfork.org/en/scripts/518587-deletcord-delete-all-messages-in-a-discord-channel-or-dm-mass-deletion) / [github](https://github.com/bekkibau/deletecord)  
 
-mass delete all discord messages from any dm or channel  
+mass delete all discord messages from any dm or channel
 
 # how to use
 ### prereq
@@ -24,7 +24,7 @@ download a userscripts manager (eg. [ViolentMonkey](https://violentmonkey.github
 10. `prevent automatically sleeping on power adapter` (optional -> see note below)
 11. rerun a few more times to delete any skipped messages (quicker than first time)  
     
-> Note: I recommend you skim through the entire chat to confirm if all messages are deleted. If not simply re-run until all done (sorry this is a bug - its not perfect, but still better than manually deleting single msgs imo)  
+> Note: I recommend you skim through the entire chat to confirm if all messages are deleted. If any messages remain, re-run until all are deleted (sorry this is a bug - its not perfect, but still better than manually deleting single msgs imo)  
 
 13. `re-enable allowing computer to sleep` (optional -> see note below)
 14. done! - you can disable the userscript until the next time you need it  
@@ -89,12 +89,11 @@ after rerunning obsessively, it'll eventually get to 0. I recommend you skim thr
 
 # untested
 I didn't test all the features so, read up on it in [wiki](https://github.com/bekkibau/deletecord/wiki) and use at your own risk the following features:
-- non-chrome browser
+- non-chrome browser (users reported issues w/ Firefox
 - NSFW
 - Import
 - after message id
 - search message
-- manually entering the `get` values
 
 # contributing
 I'll accept easy to review changes (eg. few lines of code & test screenshots) or steps (screenshots) on how to make it work for other browser / OS.
