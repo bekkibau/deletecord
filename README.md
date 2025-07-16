@@ -33,7 +33,7 @@ download a userscripts manager (eg. [ViolentMonkey](https://violentmonkey.github
 
 
 # options
-self-explanatory. refer to the [forked wiki](https://github.com/bekkibau/deketecord/wiki) if you need more info
+self-explanatory. refer to the [forked wiki](https://github.com/bekkibau/deletecord/wiki) if you need more info
 
 find `message ids` by right-clicking them  
 adjust `delay` in ms to test for optimal deletion rate 
