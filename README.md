@@ -1,3 +1,14 @@
+## 🚨 Project Archived
+
+This fork is no longer actively maintained.
+
+The original project is now active again and can be found here:  
+➡️ [undiscord by victornpb](https://github.com/victornpb/undiscord)
+
+This repo will remain available for reference, but no updates or support will be provided.
+
+-----
+
 # [deletecord](https://bekkibau.github.io/deletecord) 
 
 [website](https://bekkibau.github.io/deletecord) / [greasyfork](https://greasyfork.org/en/scripts/518587-deletcord-delete-all-messages-in-a-discord-channel-or-dm-mass-deletion) / [github](https://github.com/bekkibau/deletecord)  
